@@ -1,0 +1,119 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using ContosoCrafts.WebSite.Models
+@using ContosoCrafts.WebSite.Services
+@inject JsonFileProductService ProductService
+
+
+
+
+
+<div class="card-columns row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var product in ProductService.GetProducts())
+    {
+        <div class="col">
+            <div class="card">
+                <div class="card-img" style="background-image: url('@product.Image')"></div>
+                <div class="card-body">
+                    <h5 class="card-title">@product.Title</h5>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <button @onclick="(e => SelectProduct(product.Id))" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
+                            More Info
+                        </button>
+                    </small>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (selectProduct != null)
+{
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productTitle">@selectProduct.Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-img" style="background-image: url('@selectProduct.Image')"></div>
+                        <div class="card-body">
+                            <p class="card-text">@selectProduct.Description</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    @if (voteCount == 0)
+                    {
+                        <span>Be the first to vote!</span>
+                    }
+                    else
+                    {
+                        <span>@voteCount @votelabel</span>
+
+                    }
+                    @for (int i = 1; i < 6; i++)
+                    {
+                        var currentStar = i;
+                        if (i <= currentRating)
+                        {
+                            <span class="fa fa-star checked" @onclick="(e => SubmitRating(currentStar))"></span>
+                        }
+                        else
+                        {
+                            <span class="fa fa-star" @onclick="(e => SubmitRating(currentStar))"></span>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+@code {
+    Product selectProduct;
+    string selectproductId;
+
+    void SelectProduct(string productId)
+    {
+        selectproductId = productId;
+        selectProduct = ProductService.GetProducts().First(x => x.Id == productId);
+        GetCurrentRating();
+    }
+
+    int currentRating = 0;
+    int voteCount = 0;
+    string? votelabel;
+
+    void GetCurrentRating()
+    {
+        if (selectProduct?.Ratings == null)
+        {
+            currentRating = 0;
+            voteCount = 0;
+        }
+        else
+        {
+            voteCount = selectProduct.Ratings.Count();
+            votelabel = voteCount > 1 ? "Votes" : "Vote";
+            currentRating = selectProduct.Ratings.Sum() / voteCount;
+        }
+        Console.WriteLine($"Current rating for {selectProduct.Id}:{currentRating}");
+    }
+
+    void SubmitRating(int rating)
+    {
+        Console.WriteLine($"Rating recieved for {selectProduct.Id}:{rating}");
+        if (selectproductId == null)
+        {
+            return;
+        }
+        ProductService.AddRating(selectproductId, rating);
+        SelectProduct(selectproductId);
+    }
+}
